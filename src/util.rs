@@ -1,7 +1,7 @@
 use futures::{Future, Stream};
 use std::pin::Pin;
 use std::task::Poll;
-pub fn from_fn<T, F: Future<Output = T>>(stream: impl FnMut() -> F) -> impl Stream<Item = T> {
+pub fn fn_stream<T, F: Future<Output = T>>(stream: impl FnMut() -> F) -> impl Stream<Item = T> {
     FnStream {
         f: stream,
         cache: None,
@@ -24,11 +24,11 @@ impl<Func: FnMut() -> Fut, Fut: Future<Output = T>, T> Stream for FnStream<Func,
             if result.is_ready() {
                 stream.cache = None;
             }
-            return result.map(Some);
+            result.map(Some)
         } else {
             stream.cache = Some((stream.f)());
             self = unsafe { Pin::new_unchecked(stream) };
-            return self.poll_next(cx);
+            self.poll_next(cx)
         }
     }
 }
