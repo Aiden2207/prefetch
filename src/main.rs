@@ -8,7 +8,7 @@ use std::{
     time::Instant,
 };
 
-use util::gen_zip;
+use util::{gen_zip, GenIter};
 
 use crate::linked_list::List;
 mod linked_list;
@@ -39,10 +39,7 @@ fn bench(funcs: &[(&str, BenchFn<i32>)]) {
         println!("bench: {s} res: {} time: {:?}", f(l, r), now.elapsed())
     }
 }
-fn gen_zip_sum(
-    l: impl Generator<Yield = i32, Return = i32>,
-    r: impl Generator<Yield = i32, Return = i32>,
-) -> i32 {
+fn gen_zip_sum(l: impl GenIter<i32>, r: impl GenIter<i32>) -> i32 {
     let mut sum = 0;
     let mut gen = gen_zip(l, r);
     loop {
