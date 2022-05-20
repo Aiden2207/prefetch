@@ -47,6 +47,29 @@ pub fn gen_zip<T, U>(mut l: impl GenIter<T>, mut r: impl GenIter<U>) -> impl Gen
         }
     }
 }
+pub fn gen_chain<T>(mut l: impl GenIter<T>, mut r: impl GenIter<T>) -> impl GenIter<T> {
+    move || {
+        let mut right = false;
+        loop {
+            if right {
+                let r = unsafe { Pin::new_unchecked(&mut r) };
+                match r.resume(()) {
+                    GeneratorState::Complete(t) => return t,
+                    GeneratorState::Yielded(t) => yield t,
+                };
+            } else {
+                let l = unsafe { Pin::new_unchecked(&mut l) };
+                match l.resume(()) {
+                    GeneratorState::Yielded(t) => yield t,
+                    GeneratorState::Complete(t) => {
+                        right = true;
+                        yield t
+                    }
+                }
+            }
+        }
+    }
+}
 struct DummyWaker;
 impl Wake for DummyWaker {
     fn wake(self: Arc<Self>) {}

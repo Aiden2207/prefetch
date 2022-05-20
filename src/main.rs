@@ -8,7 +8,7 @@ use std::{
     pin::Pin,
     time::Instant,
 };
-use util::{gen_zip, GenIter};
+use util::{gen_chain, gen_zip, GenIter};
 
 use crate::{linked_list::List, util::execute};
 mod linked_list;
@@ -25,6 +25,9 @@ fn main() {
         ("generator", |l, r| {
             gen_zip_sum(l.into_generator(), r.into_generator())
         }),
+        ("generator chain", |l, r| {
+            gen_chain_sum(l.into_generator(), r.into_generator())
+        }),
         ("generator prefetch", |l, r| {
             gen_zip_sum(l.into_generator_prefetch(), r.into_generator_prefetch())
         }),
@@ -33,6 +36,13 @@ fn main() {
                 l.into_stream()
                     .zip(r.into_stream())
                     .fold(0, |a, (l, r)| async move { a + l + r }),
+            )
+        }),
+        ("stream::chain", |l, r| {
+            execute(
+                l.into_stream()
+                    .chain(r.into_stream())
+                    .fold(0, |l, r| async move { l + r }),
             )
         }),
         ("stream::zip prefetch", |l, r| {
@@ -54,6 +64,9 @@ fn main() {
         ("generator", |l, r| {
             gen_zip_sum_ref(l.generator(), r.generator())
         }),
+        ("generator chain", |l, r| {
+            gen_chain_sum_ref(l.generator(), r.generator())
+        }),
         ("generator prefetch", |l, r| {
             gen_zip_sum_ref(l.generator_prefetch(), r.generator_prefetch())
         }),
@@ -62,6 +75,13 @@ fn main() {
                 l.stream()
                     .zip(r.stream())
                     .fold(0, |a, (l, r)| async move { a + l + r }),
+            )
+        }),
+        ("stream::chain", |l, r| {
+            execute(
+                l.stream()
+                    .chain(r.stream())
+                    .fold(0, |l, r| async move { l + r }),
             )
         }),
         ("stream::zip prefetch", |l, r| {
@@ -115,6 +135,28 @@ fn gen_zip_sum_ref<'a>(l: impl GenIter<&'a i32>, r: impl GenIter<&'a i32>) -> i3
         match pin.resume(()) {
             GeneratorState::Complete((l, r)) => return sum + l + r,
             GeneratorState::Yielded((l, r)) => sum += l + r,
+        }
+    }
+}
+fn gen_chain_sum(l: impl GenIter<i32>, r: impl GenIter<i32>) -> i32 {
+    let mut sum = 0;
+    let mut gen = gen_chain(l, r);
+    loop {
+        let pin = unsafe { Pin::new_unchecked(&mut gen) };
+        match pin.resume(()) {
+            GeneratorState::Complete(n) => return sum + n,
+            GeneratorState::Yielded(n) => sum += n,
+        }
+    }
+}
+fn gen_chain_sum_ref<'a>(l: impl GenIter<&'a i32>, r: impl GenIter<&'a i32>) -> i32 {
+    let mut sum = 0;
+    let mut gen = gen_chain(l, r);
+    loop {
+        let pin = unsafe { Pin::new_unchecked(&mut gen) };
+        match pin.resume(()) {
+            GeneratorState::Complete(n) => return sum + n,
+            GeneratorState::Yielded(n) => sum += n,
         }
     }
 }
