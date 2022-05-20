@@ -49,14 +49,16 @@ fn bench(funcs: &[(&str, BenchFn<i32>)]) {
     for (s, f) in funcs {
         let (l, r) = gen_lists();
         let now = Instant::now();
-        println!("bench: {s} res: {} time: {:?}", f(l, r), now.elapsed())
+        println!("bench: {s} res: {} time: {:?}", f(l, r), now.elapsed());
     }
 }
 fn bench_ref(funcs: &[(&str, BenchFnRef<i32>)]) {
     for (s, f) in funcs {
-        let (l, r) = gen_lists();
+        let (mut l, mut r) = gen_lists();
         let now = Instant::now();
-        println!("bench: {s} res: {} time: {:?}", f(&l, &r), now.elapsed())
+        println!("bench: {s} res: {} time: {:?}", f(&l, &r), now.elapsed());
+        l.clear();
+        r.clear();
     }
 }
 fn gen_zip_sum(l: impl GenIter<i32>, r: impl GenIter<i32>) -> i32 {

@@ -15,6 +15,19 @@ impl<T> List<T> {
         }
         tail
     }
+    pub fn clear(&mut self) {
+        if self.is_nil() {
+            return;
+        }
+        let mut tmp = List::Nil;
+        std::mem::swap(self, &mut tmp);
+        loop {
+            match tmp {
+                List::Nil => break,
+                List::Cons(_, next) => tmp = *next,
+            }
+        }
+    }
     pub fn is_nil(&self) -> bool {
         matches!(self, List::Nil)
     }
