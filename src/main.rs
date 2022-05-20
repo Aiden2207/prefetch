@@ -29,7 +29,8 @@ fn gen_lists() -> (List<i32>, List<i32>) {
     let range = 1..=END;
     (List::new(range.clone()), List::new(range))
 }
-fn bench(funcs: &[(&str, fn(List<i32>, List<i32>) -> i32)]) {
+type BenchFn<T> = fn(List<T>, List<T>) -> T;
+fn bench(funcs: &[(&str, BenchFn<i32>)]) {
     for (s, f) in funcs {
         let (l, r) = gen_lists();
         let now = Instant::now();
