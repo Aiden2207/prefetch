@@ -18,23 +18,25 @@ This is the output on my machine, which has an Intel(R) Core(TM) i5-8365U CPU an
 
 ```
 Bench owned
-bench: iter::zip result: 67108864 time: 10.4643775s
-bench: iter::chain result: 67108864 time: 9.3184379s
-bench: generator zip result: 67108864 time: 18.3766084s
-bench: generator chain result: 67108864 time: 9.87299s
-bench: generator prefetch result: 67108864 time: 15.2534273s
-bench: stream::zip result: 67108864 time: 16.1874495s
-bench: stream::chain result: 67108864 time: 8.4043329s
-bench: stream::zip prefetch result: 67108864 time: 11.6481492s
+bench: iter::zip result: 67108864 time: 11.1873901s
+bench: iter::zip prefetch result: 67108864 time: 19.3889487s
+bench: iter::chain result: 67108864 time: 8.4363853s
+bench: generator zip result: 67108864 time: 16.7242197s
+bench: generator chain result: 67108864 time: 8.9897788s
+bench: generator prefetch result: 67108864 time: 11.7599589s
+bench: stream::zip result: 67108864 time: 14.339864s
+bench: stream::chain result: 67108864 time: 7.7592133s
+bench: stream::zip prefetch result: 67108864 time: 11.1455706s
 Bench ref
-bench: iter::zip result: 67108864 time: 813.3859ms
-bench: iter::chain result: 67108864 time: 1.1475895s
-bench: generator zip result: 67108864 time: 931.5528ms
-bench: generator chain result: 67108864 time: 1.4673188s
-bench: generator prefetch result: 67108864 time: 902.6999ms
-bench: stream::zip result: 67108864 time: 1.0911242s
-bench: stream::chain result: 67108864 time: 1.6229788s
-bench: stream::zip prefetch result: 67108864 time: 1.2560384s
+bench: iter::zip result: 67108864 time: 1.1343996s
+bench: iter::zip prefetch result: 67108864 time: 864.4865ms
+bench: iter::chain result: 67108864 time: 1.4036277s
+bench: generator zip result: 67108864 time: 1.1360857s
+bench: generator chain result: 67108864 time: 1.740029s
+bench: generator prefetch result: 67108864 time: 904.1086ms
+bench: stream::zip result: 67108864 time: 1.0902568s
+bench: stream::chain result: 67108864 time: 1.5683112s
+bench: stream::zip prefetch result: 67108864 time: 1.2031745s```
 ```
 
 In conclusion, the prefetching technique can provide meaningful performance improvements, as shown in the `bench owned` benchmark, but not always, and not better than what using a simpler design could.

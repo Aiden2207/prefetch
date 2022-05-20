@@ -126,6 +126,12 @@ impl<T> List<T> {
     pub fn stream_prefetch(&self) -> ListStreamPrefetchRef<'_, T> {
         ListStreamPrefetchRef(self)
     }
+    pub fn iter_prefetch(&self) -> ListIterPrefetchRef<'_, T> {
+        ListIterPrefetchRef(self)
+    }
+    pub fn into_iter_prefetch(self) -> ListIterPrefetch<T> {
+        ListIterPrefetch(self)
+    }
 }
 pub struct ListIter<T>(List<T>);
 impl<T> Iterator for ListIter<T> {
@@ -136,6 +142,42 @@ impl<T> Iterator for ListIter<T> {
         match temp {
             List::Cons(t, next) => {
                 self.0 = *next;
+                Some(t)
+            }
+            List::Nil => None,
+        }
+    }
+}
+pub struct ListIterPrefetch<T>(List<T>);
+impl<T> Iterator for ListIterPrefetch<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        let mut temp = List::Nil;
+        std::mem::swap(&mut temp, &mut self.0);
+        match temp {
+            List::Cons(t, next) => {
+                self.0 = *next;
+                if let List::Cons(_, next) = &self.0 {
+                    unsafe { prefetch_read_data::<List<T>>(&**next, 3) }
+                }
+                Some(t)
+            }
+            List::Nil => None,
+        }
+    }
+}
+pub struct ListIterPrefetchRef<'a, T>(&'a List<T>);
+impl<'a, T> Iterator for ListIterPrefetchRef<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut temp = &List::Nil;
+        std::mem::swap(&mut temp, &mut self.0);
+        match temp {
+            List::Cons(t, next) => {
+                self.0 = next;
+                if let List::Cons(_, next) = &self.0 {
+                    unsafe { prefetch_read_data::<List<T>>(&**next, 3) }
+                }
                 Some(t)
             }
             List::Nil => None,
@@ -165,6 +207,7 @@ impl<'a, T> Iterator for ListIterRef<'a, T> {
         match temp {
             List::Cons(t, next) => {
                 self.0 = next;
+
                 Some(t)
             }
             List::Nil => None,

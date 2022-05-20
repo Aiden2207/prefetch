@@ -19,9 +19,12 @@ fn main() {
         ("iter::zip", |l, r| {
             l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
         }),
-        ("iter::chain", |l, r| {
-            l.into_iter().chain(r).sum()
+        ("iter::zip prefetch", |l, r| {
+            l.into_iter_prefetch()
+                .zip(r.into_iter_prefetch())
+                .fold(0, |a, (l, r)| a + l + r)
         }),
+        ("iter::chain", |l, r| l.into_iter().chain(r).sum()),
         ("generator zip", |l, r| {
             gen_zip_sum(l.into_generator(), r.into_generator())
         }),
@@ -58,9 +61,12 @@ fn main() {
         ("iter::zip", |l, r| {
             l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
         }),
-        ("iter::chain", |l, r| {
-            l.into_iter().chain(r).sum()
+        ("iter::zip prefetch", |l, r| {
+            l.iter_prefetch()
+                .zip(r.iter_prefetch())
+                .fold(0, |a, (l, r)| a + l + r)
         }),
+        ("iter::chain", |l, r| l.into_iter().chain(r).sum()),
         ("generator zip", |l, r| {
             gen_zip_sum_ref(l.generator(), r.generator())
         }),
