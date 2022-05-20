@@ -19,6 +19,9 @@ fn main() {
         ("iter::zip", |l, r| {
             l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
         }),
+        ("iter::chain", |l, r| {
+            l.into_iter().chain(r).fold(0, |l, r| l + r)
+        }),
         ("generator", |l, r| {
             gen_zip_sum(l.into_generator(), r.into_generator())
         }),
@@ -44,6 +47,9 @@ fn main() {
     bench_ref(&[
         ("iter::zip", |l, r| {
             l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
+        }),
+        ("iter::chain", |l, r| {
+            l.into_iter().chain(r).fold(0, |l, r| l + r)
         }),
         ("generator", |l, r| {
             gen_zip_sum_ref(l.generator(), r.generator())
