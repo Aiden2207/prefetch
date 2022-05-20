@@ -1,12 +1,14 @@
 #![feature(generators)]
 #![feature(generator_trait)]
 #![feature(core_intrinsics)]
-
+#![feature(trait_alias)]
 use std::{
     ops::{Generator, GeneratorState},
     pin::Pin,
     time::Instant,
 };
+
+use util::gen_zip;
 
 use crate::linked_list::List;
 mod linked_list;
@@ -17,10 +19,10 @@ fn main() {
             l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
         }),
         ("generator", |l, r| {
-            gen_zip(l.into_generator(), r.into_generator())
+            gen_zip_sum(l.into_generator(), r.into_generator())
         }),
         ("generator prefetch", |l, r| {
-            gen_zip(l.into_generator_prefetch(), r.into_generator_prefetch())
+            gen_zip_sum(l.into_generator_prefetch(), r.into_generator_prefetch())
         }),
     ])
 }
@@ -37,22 +39,17 @@ fn bench(funcs: &[(&str, BenchFn<i32>)]) {
         println!("bench: {s} res: {} time: {:?}", f(l, r), now.elapsed())
     }
 }
-fn gen_zip(
-    mut l: impl Generator<Yield = i32, Return = i32>,
-    mut r: impl Generator<Yield = i32, Return = i32>,
+fn gen_zip_sum(
+    l: impl Generator<Yield = i32, Return = i32>,
+    r: impl Generator<Yield = i32, Return = i32>,
 ) -> i32 {
     let mut sum = 0;
+    let mut gen = gen_zip(l, r);
     loop {
-        let l_pin = unsafe { Pin::new_unchecked(&mut l) };
-        let r_pin = unsafe { Pin::new_unchecked(&mut r) };
-
-        match (l_pin.resume(()), r_pin.resume(())) {
-            (GeneratorState::Complete(l), GeneratorState::Complete(r)) => {
-                return sum + l + r;
-            }
-            (GeneratorState::Yielded(l), GeneratorState::Yielded(r)) => sum += l + r,
-            (GeneratorState::Yielded(l), GeneratorState::Complete(r)) => sum += l + r,
-            (GeneratorState::Complete(l), GeneratorState::Yielded(r)) => sum += l + r,
+        let pin = unsafe { Pin::new_unchecked(&mut gen) };
+        match pin.resume(()) {
+            GeneratorState::Complete((l, r)) => return sum + l + r,
+            GeneratorState::Yielded((l, r)) => sum += l + r,
         }
     }
 }

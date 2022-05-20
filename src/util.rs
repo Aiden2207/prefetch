@@ -1,4 +1,5 @@
 use futures::{Future, Stream};
+use std::ops::{Generator, GeneratorState};
 use std::pin::Pin;
 use std::task::Poll;
 pub fn fn_stream<T, F: Future<Output = T>>(stream: impl FnMut() -> F) -> impl Stream<Item = T> {
@@ -29,6 +30,19 @@ impl<Func: FnMut() -> Fut, Fut: Future<Output = T>, T> Stream for FnStream<Func,
             stream.cache = Some((stream.f)());
             self = unsafe { Pin::new_unchecked(stream) };
             self.poll_next(cx)
+        }
+    }
+}
+pub trait GenIter<T> = Generator<Yield = T, Return = T>;
+pub fn gen_zip<T, U>(mut l: impl GenIter<T>, mut r: impl GenIter<U>) -> impl GenIter<(T, U)> {
+    move || loop {
+        let l = unsafe { Pin::new_unchecked(&mut l) };
+        let r = unsafe { Pin::new_unchecked(&mut r) };
+        match (l.resume(()), r.resume(())) {
+            (GeneratorState::Complete(l), GeneratorState::Complete(r)) => return (l, r),
+            (GeneratorState::Complete(l), GeneratorState::Yielded(r)) => return (l, r),
+            (GeneratorState::Yielded(l), GeneratorState::Complete(r)) => return (l, r),
+            (GeneratorState::Yielded(l), GeneratorState::Yielded(r)) => yield (l, r),
         }
     }
 }

@@ -1,5 +1,7 @@
 use std::intrinsics::*;
 use std::ops::Generator;
+
+use crate::util::GenIter;
 #[derive(Debug, Clone)]
 pub enum List<T> {
     Cons(T, Box<List<T>>),
@@ -20,7 +22,7 @@ impl<T> List<T> {
     pub fn iter(&self) -> ListIterRef<'_, T> {
         self.into_iter()
     }
-    pub fn into_generator(mut self) -> impl Generator<Yield = T, Return = T> {
+    pub fn into_generator(mut self) -> impl GenIter<T> {
         || loop {
             match self {
                 List::Cons(t, tail) => {
@@ -35,7 +37,7 @@ impl<T> List<T> {
             }
         }
     }
-    pub fn into_generator_prefetch(mut self) -> impl Generator<Yield = T, Return = T> {
+    pub fn into_generator_prefetch(mut self) -> impl GenIter<T> {
         move || loop {
             match self {
                 List::Cons(t, tail) => {
