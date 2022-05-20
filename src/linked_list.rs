@@ -17,6 +17,9 @@ impl<T> List<T> {
     pub fn is_nil(&self) -> bool {
         matches!(self, List::Nil)
     }
+    pub fn iter(&self) -> ListIterRef<'_, T> {
+        self.into_iter()
+    }
     pub fn into_generator(mut self) -> impl Generator<Yield = T, Return = T> {
         || loop {
             match self {
@@ -72,5 +75,27 @@ impl<T> IntoIterator for List<T> {
     type Item = T;
     fn into_iter(self) -> Self::IntoIter {
         ListIter(self)
+    }
+}
+impl<'a, T> IntoIterator for &'a List<T> {
+    type IntoIter = ListIterRef<'a, T>;
+    type Item = &'a T;
+    fn into_iter(self) -> Self::IntoIter {
+        ListIterRef(self)
+    }
+}
+pub struct ListIterRef<'a, T>(&'a List<T>);
+impl<'a, T> Iterator for ListIterRef<'a, T> {
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut temp = &List::Nil;
+        std::mem::swap(&mut temp, &mut self.0);
+        match temp {
+            List::Cons(t, next) => {
+                self.0 = &next;
+                Some(&t)
+            }
+            List::Nil => None,
+        }
     }
 }
