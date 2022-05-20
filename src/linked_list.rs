@@ -1,4 +1,3 @@
-use futures::Stream;
 use std::intrinsics::*;
 use std::ops::Generator;
 #[derive(Debug, Clone)]
@@ -33,10 +32,7 @@ impl<T> List<T> {
             }
         }
     }
-    pub fn into_generator_prefetch(
-        mut self,
-        locality: i32,
-    ) -> impl Generator<Yield = T, Return = T> {
+    pub fn into_generator_prefetch(mut self) -> impl Generator<Yield = T, Return = T> {
         move || loop {
             match self {
                 List::Cons(t, tail) => {
@@ -45,7 +41,7 @@ impl<T> List<T> {
                     } else {
                         self = *tail;
                         match &self {
-                            List::Cons(_, next) => unsafe { prefetch_read_data(&*next, locality) },
+                            List::Cons(_, next) => unsafe { prefetch_read_data(&*next, 3) },
                             List::Nil => unsafe { unreachable() },
                         }
                         yield t;
