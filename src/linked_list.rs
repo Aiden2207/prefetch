@@ -60,7 +60,7 @@ impl<T> List<T> {
                         if tail.is_nil() {
                             return t;
                         } else {
-                            gen = &tail;
+                            gen = tail;
                             yield t;
                         }
                     }
@@ -78,7 +78,7 @@ impl<T> List<T> {
                         if tail.is_nil() {
                             return t;
                         } else {
-                            gen = &tail;
+                            gen = tail;
                             match &gen {
                                 List::Cons(_, next) => unsafe {
                                     prefetch_read_data::<List<T>>(&**next, 3)
@@ -164,8 +164,8 @@ impl<'a, T> Iterator for ListIterRef<'a, T> {
         std::mem::swap(&mut temp, &mut self.0);
         match temp {
             List::Cons(t, next) => {
-                self.0 = &next;
-                Some(&t)
+                self.0 = next;
+                Some(t)
             }
             List::Nil => None,
         }
@@ -181,10 +181,10 @@ impl<T: Unpin> Stream for ListStream<T> {
         let mut temp = List::Nil;
         std::mem::swap(&mut self.0, &mut temp);
         match temp {
-            List::Nil => return Poll::Ready(None),
+            List::Nil => Poll::Ready(None),
             List::Cons(t, next) => {
                 self.0 = *next;
-                return Poll::Ready(Some(t));
+                Poll::Ready(Some(t))
             }
         }
     }
@@ -199,14 +199,13 @@ impl<T: Unpin> Stream for ListStreamPrefetch<T> {
         let mut temp = List::Nil;
         std::mem::swap(&mut self.0, &mut temp);
         match temp {
-            List::Nil => return Poll::Ready(None),
+            List::Nil => Poll::Ready(None),
             List::Cons(t, next) => {
                 self.0 = *next;
-                match &self.0 {
-                    List::Cons(_, next) => unsafe { prefetch_read_data::<List<T>>(&**next, 3) },
-                    _ => (),
+                if let List::Cons(_, next) = &self.0 {
+                    unsafe { prefetch_read_data::<List<T>>(&**next, 3) }
                 }
-                return Poll::Ready(Some(t));
+                Poll::Ready(Some(t))
             }
         }
     }
@@ -222,10 +221,10 @@ impl<'a, T> Stream for ListStreamRef<'a, T> {
         let mut temp = &List::Nil;
         std::mem::swap(&mut self.0, &mut temp);
         match temp {
-            List::Nil => return Poll::Ready(None),
+            List::Nil => Poll::Ready(None),
             List::Cons(t, next) => {
                 self.0 = next;
-                return Poll::Ready(Some(t));
+                Poll::Ready(Some(t))
             }
         }
     }
@@ -241,14 +240,13 @@ impl<'a, T> Stream for ListStreamPrefetchRef<'a, T> {
         let mut temp = &List::Nil;
         std::mem::swap(&mut self.0, &mut temp);
         match temp {
-            List::Nil => return Poll::Ready(None),
+            List::Nil => Poll::Ready(None),
             List::Cons(t, next) => {
                 self.0 = next;
-                match &self.0 {
-                    List::Cons(_, next) => unsafe { prefetch_read_data::<List<T>>(&**next, 3) },
-                    _ => (),
+                if let List::Cons(_, next) = &self.0 {
+                    unsafe { prefetch_read_data::<List<T>>(&**next, 3) }
                 }
-                return Poll::Ready(Some(t));
+                Poll::Ready(Some(t))
             }
         }
     }
