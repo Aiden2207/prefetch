@@ -2,15 +2,15 @@
 #![feature(generator_trait)]
 #![feature(core_intrinsics)]
 #![feature(trait_alias)]
+use futures::StreamExt;
 use std::{
     ops::{Generator, GeneratorState},
     pin::Pin,
     time::Instant,
 };
-
 use util::{gen_zip, GenIter};
 
-use crate::linked_list::List;
+use crate::{linked_list::List, util::execute};
 mod linked_list;
 mod util;
 fn main() {
@@ -23,6 +23,20 @@ fn main() {
         }),
         ("generator prefetch", |l, r| {
             gen_zip_sum(l.into_generator_prefetch(), r.into_generator_prefetch())
+        }),
+        ("stream::zip", |l, r| {
+            execute(
+                l.into_stream()
+                    .zip(r.into_stream())
+                    .fold(0, |a, (l, r)| async move { a + l + r }),
+            )
+        }),
+        ("stream::zip prefetch", |l, r| {
+            execute(
+                l.into_stream()
+                    .zip(r.into_stream())
+                    .fold(0, |a, (l, r)| async move { a + l + r }),
+            )
         }),
     ]);
     println!("Bench ref");

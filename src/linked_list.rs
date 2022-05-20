@@ -1,4 +1,6 @@
-use std::intrinsics::*;
+use std::{intrinsics::*, pin::Pin, task::Poll};
+
+use futures::Stream;
 
 use crate::util::GenIter;
 #[derive(Debug, Clone)]
@@ -6,7 +8,6 @@ pub enum List<T> {
     Cons(T, Box<List<T>>),
     Nil,
 }
-
 impl<T> List<T> {
     pub fn new(iter: impl IntoIterator<Item = T>) -> Self {
         let mut tail = List::Nil;
@@ -15,6 +16,7 @@ impl<T> List<T> {
         }
         tail
     }
+
     pub fn clear(&mut self) {
         if self.is_nil() {
             return;
@@ -78,7 +80,9 @@ impl<T> List<T> {
                         } else {
                             gen = &tail;
                             match &gen {
-                                List::Cons(_, next) => unsafe { prefetch_read_data(&*next, 3) },
+                                List::Cons(_, next) => unsafe {
+                                    prefetch_read_data::<List<T>>(&**next, 3)
+                                },
                                 List::Nil => unsafe { unreachable() },
                             }
                             yield t;
@@ -98,7 +102,9 @@ impl<T> List<T> {
                     } else {
                         self = *tail;
                         match &self {
-                            List::Cons(_, next) => unsafe { prefetch_read_data(&*next, 3) },
+                            List::Cons(_, next) => unsafe {
+                                prefetch_read_data::<List<T>>(&**next, 3)
+                            },
                             List::Nil => unsafe { unreachable() },
                         }
                         yield t;
@@ -107,6 +113,12 @@ impl<T> List<T> {
                 _ => panic!("attempted to `resume` an empty generator"),
             }
         }
+    }
+    pub fn into_stream(self) -> ListStream<T> {
+        ListStream(self)
+    }
+    pub fn into_stream_prefetch(self) -> ListStreamPrefetch<T> {
+        ListStreamPrefetch(self)
     }
 }
 pub struct ListIter<T>(List<T>);
@@ -150,6 +162,46 @@ impl<'a, T> Iterator for ListIterRef<'a, T> {
                 Some(&t)
             }
             List::Nil => None,
+        }
+    }
+}
+pub struct ListStream<T>(List<T>);
+impl<T: Unpin> Stream for ListStream<T> {
+    type Item = T;
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let mut temp = List::Nil;
+        std::mem::swap(&mut self.0, &mut temp);
+        match temp {
+            List::Nil => return Poll::Ready(None),
+            List::Cons(t, next) => {
+                self.0 = *next;
+                return Poll::Ready(Some(t));
+            }
+        }
+    }
+}
+pub struct ListStreamPrefetch<T>(List<T>);
+impl<T: Unpin> Stream for ListStreamPrefetch<T> {
+    type Item = T;
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let mut temp = List::Nil;
+        std::mem::swap(&mut self.0, &mut temp);
+        match temp {
+            List::Nil => return Poll::Ready(None),
+            List::Cons(t, next) => {
+                self.0 = *next;
+                match &self.0 {
+                    List::Cons(_, next) => unsafe { prefetch_read_data::<List<T>>(&**next, 3) },
+                    _ => (),
+                }
+                return Poll::Ready(Some(t));
+            }
         }
     }
 }
