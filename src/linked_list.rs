@@ -36,6 +36,46 @@ impl<T> List<T> {
             }
         }
     }
+    pub fn generator(&self) -> impl GenIter<&T> {
+        move || {
+            let mut gen = self;
+            loop {
+                match gen {
+                    List::Cons(t, tail) => {
+                        if tail.is_nil() {
+                            return t;
+                        } else {
+                            gen = &tail;
+                            yield t;
+                        }
+                    }
+                    _ => panic!("attempted to `resume` an empty generator"),
+                }
+            }
+        }
+    }
+    pub fn generator_prefetch(&self) -> impl GenIter<&T> {
+        move || {
+            let mut gen = self;
+            loop {
+                match gen {
+                    List::Cons(t, tail) => {
+                        if tail.is_nil() {
+                            return t;
+                        } else {
+                            gen = &tail;
+                            match &gen {
+                                List::Cons(_, next) => unsafe { prefetch_read_data(&*next, 3) },
+                                List::Nil => unsafe { unreachable() },
+                            }
+                            yield t;
+                        }
+                    }
+                    _ => panic!("attempted to `resume` an empty generator"),
+                }
+            }
+        }
+    }
     pub fn into_generator_prefetch(mut self) -> impl GenIter<T> {
         move || loop {
             match self {

@@ -24,6 +24,18 @@ fn main() {
         ("generator prefetch", |l, r| {
             gen_zip_sum(l.into_generator_prefetch(), r.into_generator_prefetch())
         }),
+    ]);
+    println!("Bench ref");
+    bench_ref(&[
+        ("iter::zip", |l, r| {
+            l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
+        }),
+        ("generator", |l, r| {
+            gen_zip_sum_ref(l.generator(), r.generator())
+        }),
+        ("generator prefetch", |l, r| {
+            gen_zip_sum_ref(l.generator_prefetch(), r.generator_prefetch())
+        }),
     ])
 }
 const END: i32 = 1024 * 1024 * 1024 / 16;
@@ -32,6 +44,7 @@ fn gen_lists() -> (List<i32>, List<i32>) {
     (List::new(range.clone()), List::new(range))
 }
 type BenchFn<T> = fn(List<T>, List<T>) -> T;
+type BenchFnRef<T> = fn(&List<T>, &List<T>) -> T;
 fn bench(funcs: &[(&str, BenchFn<i32>)]) {
     for (s, f) in funcs {
         let (l, r) = gen_lists();
@@ -39,7 +52,25 @@ fn bench(funcs: &[(&str, BenchFn<i32>)]) {
         println!("bench: {s} res: {} time: {:?}", f(l, r), now.elapsed())
     }
 }
+fn bench_ref(funcs: &[(&str, BenchFnRef<i32>)]) {
+    for (s, f) in funcs {
+        let (l, r) = gen_lists();
+        let now = Instant::now();
+        println!("bench: {s} res: {} time: {:?}", f(&l, &r), now.elapsed())
+    }
+}
 fn gen_zip_sum(l: impl GenIter<i32>, r: impl GenIter<i32>) -> i32 {
+    let mut sum = 0;
+    let mut gen = gen_zip(l, r);
+    loop {
+        let pin = unsafe { Pin::new_unchecked(&mut gen) };
+        match pin.resume(()) {
+            GeneratorState::Complete((l, r)) => return sum + l + r,
+            GeneratorState::Yielded((l, r)) => sum += l + r,
+        }
+    }
+}
+fn gen_zip_sum_ref<'a>(l: impl GenIter<&'a i32>, r: impl GenIter<&'a i32>) -> i32 {
     let mut sum = 0;
     let mut gen = gen_zip(l, r);
     loop {
