@@ -3,6 +3,7 @@ use std::ops::{Generator, GeneratorState};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
+//Was originally going to be an implementation detail of the List's streams, but I wound up not using it. I'm still going to leave this here in case it's useful to somebody.
 #[allow(unused)]
 pub fn fn_stream<T, F: Future<Output = T>>(stream: impl FnMut() -> F) -> impl Stream<Item = T> {
     FnStream {

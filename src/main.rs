@@ -22,7 +22,7 @@ fn main() {
         ("iter::chain", |l, r| {
             l.into_iter().chain(r).fold(0, |l, r| l + r)
         }),
-        ("generator", |l, r| {
+        ("generator zip", |l, r| {
             gen_zip_sum(l.into_generator(), r.into_generator())
         }),
         ("generator chain", |l, r| {
@@ -61,7 +61,7 @@ fn main() {
         ("iter::chain", |l, r| {
             l.into_iter().chain(r).fold(0, |l, r| l + r)
         }),
-        ("generator", |l, r| {
+        ("generator zip", |l, r| {
             gen_zip_sum_ref(l.generator(), r.generator())
         }),
         ("generator chain", |l, r| {
@@ -104,14 +104,14 @@ fn bench(funcs: &[(&str, BenchFn<i32>)]) {
     for (s, f) in funcs {
         let (l, r) = gen_lists();
         let now = Instant::now();
-        println!("bench: {s} res: {} time: {:?}", f(l, r), now.elapsed());
+        println!("bench: {s} result: {} time: {:?}", f(l, r), now.elapsed());
     }
 }
 fn bench_ref(funcs: &[(&str, BenchFnRef<i32>)]) {
     for (s, f) in funcs {
         let (mut l, mut r) = gen_lists();
         let now = Instant::now();
-        println!("bench: {s} res: {} time: {:?}", f(&l, &r), now.elapsed());
+        println!("bench: {s} result: {} time: {:?}", f(&l, &r), now.elapsed());
         l.clear();
         r.clear();
     }

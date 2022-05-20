@@ -2,7 +2,7 @@
 name = "prefetch"
 version = "0.1.0"
 edition = "2021"
-author = "aiden2207"
+authors = ["aiden2207"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Aiden2207/prefetch"
 homepage = "https://github.com/Aiden2207/prefetch"
