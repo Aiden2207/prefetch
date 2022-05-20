@@ -14,6 +14,7 @@ use crate::{linked_list::List, util::execute};
 mod linked_list;
 mod util;
 fn main() {
+    println!("Bench owned");
     bench(&[
         ("iter::zip", |l, r| {
             l.into_iter().zip(r).fold(0, |a, (l, r)| a + l + r)
@@ -49,6 +50,20 @@ fn main() {
         }),
         ("generator prefetch", |l, r| {
             gen_zip_sum_ref(l.generator_prefetch(), r.generator_prefetch())
+        }),
+        ("stream::zip", |l, r| {
+            execute(
+                l.stream()
+                    .zip(r.stream())
+                    .fold(0, |a, (l, r)| async move { a + l + r }),
+            )
+        }),
+        ("stream::zip prefetch", |l, r| {
+            execute(
+                l.stream_prefetch()
+                    .zip(r.stream_prefetch())
+                    .fold(0, |a, (l, r)| async move { a + l + r }),
+            )
         }),
     ])
 }

@@ -16,7 +16,7 @@ impl<T> List<T> {
         }
         tail
     }
-
+    ///Completely clears the the [`List`]. Nessecary to use if dropping a very large list all at once, because the default drop glue will blow out the stack, and manually implementing [`Drop`] breaks everything else.
     pub fn clear(&mut self) {
         if self.is_nil() {
             return;
@@ -120,6 +120,12 @@ impl<T> List<T> {
     pub fn into_stream_prefetch(self) -> ListStreamPrefetch<T> {
         ListStreamPrefetch(self)
     }
+    pub fn stream(&self) -> ListStreamRef<'_, T> {
+        ListStreamRef(self)
+    }
+    pub fn stream_prefetch(&self) -> ListStreamPrefetchRef<'_, T> {
+        ListStreamPrefetchRef(self)
+    }
 }
 pub struct ListIter<T>(List<T>);
 impl<T> Iterator for ListIter<T> {
@@ -196,6 +202,48 @@ impl<T: Unpin> Stream for ListStreamPrefetch<T> {
             List::Nil => return Poll::Ready(None),
             List::Cons(t, next) => {
                 self.0 = *next;
+                match &self.0 {
+                    List::Cons(_, next) => unsafe { prefetch_read_data::<List<T>>(&**next, 3) },
+                    _ => (),
+                }
+                return Poll::Ready(Some(t));
+            }
+        }
+    }
+}
+
+pub struct ListStreamRef<'a, T>(&'a List<T>);
+impl<'a, T> Stream for ListStreamRef<'a, T> {
+    type Item = &'a T;
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let mut temp = &List::Nil;
+        std::mem::swap(&mut self.0, &mut temp);
+        match temp {
+            List::Nil => return Poll::Ready(None),
+            List::Cons(t, next) => {
+                self.0 = next;
+                return Poll::Ready(Some(t));
+            }
+        }
+    }
+}
+
+pub struct ListStreamPrefetchRef<'a, T>(&'a List<T>);
+impl<'a, T> Stream for ListStreamPrefetchRef<'a, T> {
+    type Item = &'a T;
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let mut temp = &List::Nil;
+        std::mem::swap(&mut self.0, &mut temp);
+        match temp {
+            List::Nil => return Poll::Ready(None),
+            List::Cons(t, next) => {
+                self.0 = next;
                 match &self.0 {
                     List::Cons(_, next) => unsafe { prefetch_read_data::<List<T>>(&**next, 3) },
                     _ => (),
