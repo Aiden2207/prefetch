@@ -1,5 +1,4 @@
 use std::intrinsics::*;
-use std::ops::Generator;
 
 use crate::util::GenIter;
 #[derive(Debug, Clone)]
