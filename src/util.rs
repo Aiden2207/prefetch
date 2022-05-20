@@ -3,6 +3,7 @@ use std::ops::{Generator, GeneratorState};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
+#[allow(unused)]
 pub fn fn_stream<T, F: Future<Output = T>>(stream: impl FnMut() -> F) -> impl Stream<Item = T> {
     FnStream {
         f: stream,
