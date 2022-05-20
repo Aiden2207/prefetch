@@ -1,7 +1,8 @@
 use futures::{Future, Stream};
 use std::ops::{Generator, GeneratorState};
 use std::pin::Pin;
-use std::task::Poll;
+use std::sync::Arc;
+use std::task::{Context, Poll, Wake, Waker};
 pub fn fn_stream<T, F: Future<Output = T>>(stream: impl FnMut() -> F) -> impl Stream<Item = T> {
     FnStream {
         f: stream,
@@ -43,6 +44,22 @@ pub fn gen_zip<T, U>(mut l: impl GenIter<T>, mut r: impl GenIter<U>) -> impl Gen
             (GeneratorState::Complete(l), GeneratorState::Yielded(r)) => return (l, r),
             (GeneratorState::Yielded(l), GeneratorState::Complete(r)) => return (l, r),
             (GeneratorState::Yielded(l), GeneratorState::Yielded(r)) => yield (l, r),
+        }
+    }
+}
+struct DummyWaker;
+impl Wake for DummyWaker {
+    fn wake(self: Arc<Self>) {}
+    fn wake_by_ref(self: &Arc<Self>) {}
+}
+pub fn execute<T>(mut fut: impl Future<Output = T>) -> T {
+    let waker = Waker::from(Arc::new(DummyWaker));
+    let mut ctx = Context::from_waker(&waker);
+    loop {
+        let pin = unsafe { Pin::new_unchecked(&mut fut) };
+        match pin.poll(&mut ctx) {
+            Poll::Pending => continue,
+            Poll::Ready(t) => return t,
         }
     }
 }
