@@ -6,7 +6,7 @@ After viewing [this](https://stackoverflow.com/questions/72297210/prefetching-an
 
 There are two benchmarks, each with eight different algorithms. The first benchmark, `bench owned`, builds a very large `list<i32>` that is consumed, summing all of the elements. This benchmark is dominated by deallocation, rather than the traversal. The second is `bench ref` where an immutable reference is used to traverse the `List<i32>` and sum it, with deallocation times not being measured.
 
-The `iter::zip` and `iter::chain` algorithms use a simple iterator in combination with `Iterator::zip` and `Iterator::chain` to combine the list. The `generator zip` and `generator chain` algorithms use a custom baked code combine [`Generators`](https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html) in a similar fashion to `Iterator::zip` and `Iterator::chain`. The `generator prefetch` is the same as `generator zip` with prefetching. The `stream` tests work the same as the equivalent `generator` ones, but using [`futures::Stream`s](https://docs.rs/futures/latest/futures/stream/trait.Stream.html) instead.
+The `iter::zip` and `iter::chain` algorithms use a simple iterator in combination with `Iterator::zip` and `Iterator::chain` to combine the list. The `iter::zip prefetch` is the same as the `iter::zip` but with interleaved prefetching. The generator algorithms are the same as the iterator ones, but with custom baked combinators of [`Generators`](https://doc.rust-lang.org/beta/unstable-book/language-features/generators.html). The same for the Stream tests, but with [`futures::Stream`s](https://docs.rs/futures/latest/futures/stream/trait.Stream.html) instead.
 
 ## Running the Benchmarks
 
@@ -36,7 +36,7 @@ bench: generator chain result: 67108864 time: 1.740029s
 bench: generator prefetch result: 67108864 time: 904.1086ms
 bench: stream::zip result: 67108864 time: 1.0902568s
 bench: stream::chain result: 67108864 time: 1.5683112s
-bench: stream::zip prefetch result: 67108864 time: 1.2031745s```
+bench: stream::zip prefetch result: 67108864 time: 1.2031745s
 ```
 
 In conclusion, the prefetching technique can provide meaningful performance improvements, as shown in the `bench owned` benchmark, but not always, and not better than what using a simpler design could.
