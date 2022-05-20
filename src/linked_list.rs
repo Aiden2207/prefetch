@@ -1,3 +1,4 @@
+use futures::Stream;
 use std::intrinsics::*;
 use std::ops::Generator;
 #[derive(Debug, Clone)]
